@@ -195,6 +195,6 @@ This repository contains source code only. **Raw CRSP and Compustat data are not
 If you reference this work, please cite as:
 
 ```
-Goyal, S., & Kim, C. (2026). Rolling XGBoost Regression Tree Quantitative Model.
+Goyal, S.(2026). Rolling XGBoost Regression Tree Quantitative Model.
 GitHub repository: https://github.com/SmritiGoyal/xgboost-quant-stock-return
 ```
