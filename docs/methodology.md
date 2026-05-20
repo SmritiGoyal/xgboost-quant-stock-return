@@ -138,12 +138,6 @@ The pipeline keeps both the raw features AND the percentile-rank features in the
 
 Only the `_pct_rank` columns are passed to XGBoost.
 
-### 3.4 The 10-vs-9 feature discrepancy
-
-The team's report describes 9 features (7 academic + 2 new). The code passes 10 features into XGBoost — the 9 documented features plus `marketcap` itself.
-
-The rebuild preserves the 10-feature setup because that is what produced the validated headline numbers. The honest framing in this codebase is: **9 named factor signals + 1 size control = 10 model inputs.** Documentation in `features.md` discloses this explicitly.
-
 ---
 
 ## 4. Modeling
