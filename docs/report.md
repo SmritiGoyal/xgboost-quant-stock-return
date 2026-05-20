@@ -1,7 +1,5 @@
 # Rolling XGBoost Regression Tree Quantitative Model — Final Report
 
-**Authors:** Smriti Goyal, Changdo Kim — Team Smri-Do
-**Course:** Quantitative Strategies & Financial Analytics
 **Institution:** Goizueta Business School, Emory University
 **Date:** April 2026
 
