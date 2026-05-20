@@ -1,0 +1,45 @@
+# Raw WRDS data — proprietary, not redistributable
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/README.md
+
+# Local configuration with paths
+config.py
+
+# Pipeline outputs (regenerable)
+outputs/*.csv
+outputs/*.parquet
+outputs/*.png
+!outputs/README.md
+!outputs/.gitkeep
+
+# Notebooks intermediate state
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution / packaging (in case anyone packages this later)
+build/
+dist/
+*.egg-info/
