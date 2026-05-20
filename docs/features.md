@@ -12,7 +12,7 @@ The features are listed in the exact order they appear in the model input matrix
 
 ## Feature count: 9 documented + 1 implicit = 10 total
 
-The team's final report describes **9 features** (7 from academic literature + 2 newly proposed). However, the production code passes **10 features** into XGBoost — the 9 documented features plus `marketcap` itself as an implicit size control.
+The production code passes **10 features** into XGBoost — the 9 documented features plus `marketcap` itself as an implicit size control.
 
 This rebuild preserves the 10-feature setup because that is what produced the validated headline metrics (Sharpe 2.53, alpha 4.36% monthly, t-stat 13.24). Removing `marketcap` would change the numbers. The honest framing is: 9 named factor signals + 1 size control = 10 model inputs.
 
