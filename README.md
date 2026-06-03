@@ -1,53 +1,56 @@
 # XGBoost Quant Stock Return Model
 
-![Sharpe Ratio](https://img.shields.io/badge/Annualized%20Sharpe-2.53-2ea44f?style=for-the-badge)
-![Alpha](https://img.shields.io/badge/Monthly%20Alpha-4.36%25%20%28t%3D13.24%29-blue?style=for-the-badge)
-![Stack](https://img.shields.io/badge/Stack-Python%20%7C%20XGBoost%20%7C%20statsmodels-orange?style=for-the-badge)
+> **Rolling-window XGBoost cross-sectional return prediction for US equities (1995-2024).** Out-of-sample annualized Sharpe **1.03**, monthly CAPM alpha **+2.19%** (t = 6.08), market beta **-0.43**, over 300 months (Feb 2000 - Dec 2024).
 
-Rolling-window XGBoost cross-sectional return prediction for US equities (1995–2024). The model produces one-month-ahead return forecasts, sorts them into decile portfolios, and evaluates the long-short spread against a CAPM market model. End-to-end the pipeline runs in under two minutes on a single laptop and reproduces a peer-reviewed quantitative strategy from raw CRSP and Compustat data.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![XGBoost](https://img.shields.io/badge/xgboost-2.1+-orange.svg)
 
----
+## What this is
 
-## The Problem
+This repository contains a complete, reproducible implementation of a cross-sectional stock return prediction model using XGBoost, with rolling 60-month training windows producing one-month-ahead return forecasts. The forecasts are sorted into decile portfolios, and a long-short spread (top decile minus bottom decile) is evaluated using CAPM regressions against the Fama-French market factor.
 
-Predicting stock returns is hard for reasons that don't disappear with more data or fancier models:
+The model uses **10 features**: 8 drawn from the academic factor-investing literature (Fama-French value/investment, momentum, profitability, accruals) and market-cap as a size control, plus **2 self-proposed signals** (short-term reversal, idiosyncratic volatility). See `docs/features.md` for formulas and citations.
 
-- **The signal-to-noise ratio is extreme.** A single stock's monthly return is dominated by idiosyncratic news, market microstructure, and pure randomness. Even strong factor models explain less than 1% of monthly cross-sectional variance — and that's a feature, not a bug. The Sharpe ratio comes from being right *consistently across many stocks*, not from any single forecast being accurate.
-- **Look-ahead bias is everywhere.** Compustat fundamentals are not publicly available on fiscal year-end — the 10-K filing follows 60-90 days later. Using `datadate` directly leaks information that didn't exist at the prediction time. The pipeline applies a 5-month publication lag and a backward-direction `merge_asof` to enforce no-look-ahead at the data level.
-- **Regimes change.** Factors that worked in the 1990s (small-cap value) don't work the same way in the 2020s (which were dominated by mega-cap growth). A model trained on the full sample memorizes the average regime. The rolling 60-month window forces the model to adapt to recent conditions, paying a small amount of training-data efficiency for a meaningfully more honest backtest.
+> **Note on a corrected look-ahead leak.** An earlier version of this model reported an annualized Sharpe of ~2.5. A feature audit (documented in `docs/leakage_audit.md`) found that the idiosyncratic-volatility feature was computed over a window that included the prediction month's own return — a look-ahead leak. Lagging the feature to information available at prediction time reduces the Sharpe to the honest **1.03** reported here. All headline numbers in this README reflect the corrected, leak-free pipeline.
 
-This project addresses all three within a reproducible single-machine pipeline grounded in academic factor-investing literature.
-
----
-
-## Results
-
-The strategy goes long the top decile and short the bottom decile of model-predicted returns each month, then evaluates the resulting return stream against a CAPM market model. The numbers below are from a validated end-to-end re-run; the original April 2026 submitted report reproduces to within 1% (see Reproducibility section).
+## Headline results (leak-free)
 
 | Metric | Value |
 |---|---:|
-| Annualized Sharpe ratio | **2.53** |
-| Monthly mean return (long-short) | **+4.79%** |
-| Monthly CAPM alpha | **+4.36%** |
-| Alpha t-statistic | **13.24** |
-| Market beta | **0.726** |
-| CAPM regression R² | **0.257** |
-| Backtest months (Feb 2000 – Dec 2024) | **300** |
+| Annualized Sharpe | **1.03** |
+| Monthly mean spread return | **+1.93%** |
+| Monthly Sharpe | **0.30** |
+| Spread t-statistic (vs zero) | **5.15** |
+| Monthly CAPM alpha (vs Fama-French market) | **+2.19%** |
+| Alpha t-statistic | **6.08** |
+| Market beta | **-0.43** |
+| R-squared (market model) | **0.094** |
+| Backtest months | **300** (Feb 2000 - Dec 2024, ~25 years) |
 
 ### Decile portfolio structure
 
-A working cross-sectional predictive model produces a **monotonic alpha pattern** across the decile sort. The pipeline produces exactly this — the alpha increases smoothly from the lowest-predicted decile (significantly negative) to the highest (significantly positive), with the long-short spread far more extreme than either tail.
+The model produces a broadly monotonic decile-alpha pattern, the structural signature of a working cross-sectional predictive model. The spread is driven primarily by the short leg (decile 0 has a large negative alpha); the long leg (decile 9) is positive but not statistically significant on its own.
 
-| Decile | Mean return | Annualized Sharpe | CAPM alpha (mo.) | Alpha t-stat |
-|---:|---:|---:|---:|---:|
-| 0 (lowest predicted) | −2.05% | −0.96 | **−2.94%** | −10.69 |
-| 5 (median) | +1.03% | +0.72 | +0.30% | +2.37 |
-| 9 (highest predicted) | +2.74% | +0.80 | **+1.42%** | +3.13 |
-| **Long-short spread (9 − 0)** | **+4.79%** | **+2.53** | **+4.36%** | **+13.24** |
+```
+Decile 0 (lowest predicted return):   alpha = -1.78%/mo (t = -4.68)   "losers" significant
+Decile 9 (highest predicted return):  alpha = +0.41%/mo (t = +1.51)   "winners" not significant
+Long-short spread:                    alpha = +2.19%/mo (t = +6.08)   strategy alpha
+```
 
-The 4.36% monthly alpha — what's left after removing market exposure — corresponds to a t-statistic of 13.24, which is roughly the strength of evidence that gravity exists.
+For the complete decile-by-decile table and references to the academic literature, see `docs/report.md` and `docs/methodology.md`.
 
----
+### Feature ablation: contribution of the proposed signals
+
+To isolate how much the two self-proposed signals add over the academic-factor baseline, the pipeline was run on three feature sets holding everything else constant (`src/run_ablation.py`):
+
+| Feature set | Features | Ann. Sharpe | Monthly alpha | Alpha t-stat |
+|---|---:|---:|---:|---:|
+| Baseline (academic + controls) | 8 | 0.94 | +2.14% | 5.65 |
+| Full model (+ proposed signals) | 10 | **1.03** | +2.19% | 6.08 |
+| Proposed signals only | 2 | 0.38 | +0.92% | 3.05 |
+
+The proposed signals add roughly +0.09 to the annualized Sharpe (about +10%) over the academic baseline. They are complementary rather than dominant: weak in isolation, modestly additive in combination. This ablation is also what surfaced the volatility-feature leak (see below).
 
 ## How it works
 
@@ -61,7 +64,7 @@ The 4.36% monthly alpha — what's left after removing market exposure — corre
                       v
               src/ingestion.py
                       |
-        merged panel (1.5M rows)
+        merged panel (1.56M rows)
                       |
                       v
         src/feature_engineering.py
@@ -83,59 +86,21 @@ The 4.36% monthly alpha — what's left after removing market exposure — corre
                       v
         src/market_model.py
         - CAPM regression per portfolio
-        - alpha, beta, t-stats, R²
+        - alpha, beta, t-stats, R-squared
                       |
                       v
               outputs/*.csv
 ```
 
-## Key Technical Decisions
-
-The choices below are the ones that drove the result. Each came from a measured failure of the alternative or an explicit constraint in the data.
-
-### 1. Rolling-window training, not single train/test split
-
-A single train/test split treats stock-return prediction as a stationary problem. It isn't — market regimes change, and a model trained on 1995-2010 data is substantially miscalibrated for 2020+. The pipeline refits the model every month on the prior 60 months of data and predicts only the next month. This simulates how the strategy would actually run: at month t, train on what you have; predict month t+1; observe; repeat. The cost is computational (330 fits instead of one); the benefit is a backtest that's honest about regime changes.
-
-### 2. Compustat fundamentals lagged 5 months, not used at fiscal year-end
-
-The single most important leakage-prevention decision in the pipeline. Compustat reports fiscal year-end accounting data, but that data isn't *publicly available* until the 10-K filing — typically 60-90 days later, plus additional time for the data vendor to ingest, validate, and publish. The pipeline shifts every Compustat row's effective date forward by 5 months:
-
-```python
-cstat["date"] = cstat["datadate"] + DateOffset(months=5)
-```
-
-Then performs a backward-direction `merge_asof` with 365-day tolerance — meaning each CRSP month gets matched to the most recent Compustat row available at that point in time. Without this lag, the pipeline would "predict" December 2010 returns using December 2010 Compustat data that didn't actually exist until April 2011.
-
-### 3. Cross-sectional percentile-rank transformation, not standardization
-
-After Winsorization, each feature is converted to its within-month percentile rank rather than z-scored. Two reasons. First, **distribution shift over time** — a "high" book-to-market in 1995 (mean ~0.6) isn't the same value as in 2020 (mean ~0.3, dragged down by tech megacaps). A pooled z-score would use bounds dominated by one regime, distorting relative ordering in the other. Second, **leakage safety** — the rank of a value depends only on its position within the same month's cross-section, not on any future-information statistics. The pipeline is bit-safe against accidentally using future moments to scale current features.
-
-### 4. XGBoost over linear regression, but for a specific reason
-
-A linear cross-sectional model (Fama-MacBeth) handles each feature independently. It can find that high book-to-market predicts higher returns *and* that high momentum predicts higher returns, but it can't capture interactions like "value matters more for low-volatility stocks" without explicit interaction terms. XGBoost natively captures these via tree splits. With 10 features and ~3,500 stocks per month, gradient-boosted trees find structure linear models miss. The tradeoff is interpretability — harder to extract "why" the model predicted a stock will outperform — but for a research backtest where the empirical Sharpe is the deliverable, that's an acceptable cost.
-
-### 5. CAPM decomposition isolates true alpha from beta exposure
-
-The long-short spread earns 4.79% per month, but a critical question is: how much of that is leveraged market exposure vs. genuine cross-sectional alpha? The CAPM regression decomposes the spread return into:
-
-```
-excess_return = α + β × mkt_excess + ε
-```
-
-The result: **β = 0.73** (the spread has meaningful net long market exposure) and **α = 4.36%/month** (still significant at t = 13.24 after removing that exposure). This is the rigorous answer to "is this just leveraged market exposure?" — no, the residual alpha is statistically overwhelming.
-
----
-
-## Repository Structure
+## Repository structure
 
 ```
 xgboost-quant-stock-return/
 ├── README.md                  This file
 ├── LICENSE                    MIT
-├── requirements.txt           Pinned dependencies
-├── .gitignore                 Excludes data/, outputs/, local config.py
-├── config.example.py          PipelineConfig template — copy to config.py
+├── requirements.txt
+├── .gitignore
+├── config.example.py          Copy to config.py and fill in local paths
 │
 ├── src/
 │   ├── ingestion.py           CRSP + Compustat + as-of merge with 5-mo lag
@@ -143,134 +108,111 @@ xgboost-quant-stock-return/
 │   ├── modeling.py            Rolling-window XGBoost training loop
 │   ├── portfolio_construction.py  Decile sort + long-short spread + stats
 │   ├── market_model.py        CAPM regressions per portfolio
-│   └── run_pipeline.py        End-to-end orchestrator
+│   ├── run_pipeline.py        End-to-end orchestrator
+│   └── run_ablation.py        Feature-ablation harness (baseline vs full)
 │
 ├── data/
 │   ├── raw/                   WRDS data (gitignored — not redistributable)
-│   └── README.md              How to obtain CRSP/Compustat
+│   └── README.md              How to obtain CRSP/Compustat from WRDS
 │
 ├── outputs/
-│   └── README.md              Output schema documentation
+│   └── README.md              Pipeline output schema documentation
 │
 └── docs/
-    ├── features.md            10 features with formulas + academic citations
-    ├── methodology.md         Full technical writeup
-    └── report.md              Original April 2026 submitted report (rebuild values)
+    ├── features.md            10 features with formulas + citations
+    ├── methodology.md         Full technical writeup of methodology
+    ├── leakage_audit.md       The volatility-feature leak: detection + fix
+    └── report.md              Original submitted report (April 2026)
 ```
 
----
-
-## Reproducing the Results
+## Quick start
 
 ### Prerequisites
 
 - Python 3.12+
-- WRDS subscription for CRSP and Compustat data (academic / institutional access)
+- WRDS subscription for CRSP and Compustat data (see `data/README.md` for query details)
 - Fama-French monthly factor file (free, from the Kenneth French data library)
 
 ### Setup
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/SmritiGoyal/xgboost-quant-stock-return.git
 cd xgboost-quant-stock-return
+
+# 2. Set up a virtual environment
 python -m venv .venv
-.venv\Scripts\activate           # Windows
-# source .venv/bin/activate      # macOS/Linux
+source .venv/bin/activate    # Linux/Mac
+.\.venv\Scripts\activate     # Windows
+
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Create local config
 cp config.example.py config.py
-```
+# Edit config.py with your local paths
 
-### Get the data
+# 5. Download data per data/README.md, then place files in data/raw/
 
-CRSP and Compustat are commercial proprietary databases licensed through WRDS. Instructions for the specific WRDS queries are in [`data/README.md`](data/README.md).
-
-### Run
-
-```bash
+# 6. Run the pipeline
 python src/run_pipeline.py
+
+# (optional) Run the feature ablation
+python src/run_ablation.py
 ```
 
-The pipeline writes four CSVs to `outputs/`:
+Expected runtime: ~2 minutes on a modern laptop for the main pipeline. The slowest stage is the 330-iteration rolling XGBoost training loop.
+
+## Output
+
+`src/run_pipeline.py` saves four CSVs to `outputs/` (gitignored):
 
 | File | Contents |
 |---|---|
 | `rolling_xgb_pred_returns_project.csv` | ~1.2M predictions (one row per stock-month) |
-| `rolling_xgb_r2_project.csv` | Per-month out-of-sample R² |
+| `rolling_xgb_r2_project.csv` | Per-month out-of-sample R-squared |
 | `portfolio_performance_summary.csv` | Per-decile + spread monthly statistics |
 | `market_model_results.csv` | CAPM alpha/beta per decile + spread |
 
-### Runtime breakdown
+Schema details in `outputs/README.md`.
 
-| Stage | Wall time |
-|---|---:|
-| 1 — Ingestion (CRSP + Compustat + merge) | 4s |
-| 2 — Feature engineering (10 features) | 10s |
-| 3 — Rolling XGBoost (330 iterations) | 1m 30s |
-| 4 — Portfolio construction | 1s |
-| 5 — CAPM regressions | 3s |
-| **Total** | **~1m 50s** |
+## Reproducibility and the corrected leak
 
----
+The pipeline uses `random_state=0` in the XGBoost configuration. Given identical CRSP/Compustat extracts from WRDS, results reproduce exactly.
 
-## Reproducibility
+The original April 2026 report reported an annualized Sharpe of 2.52. This repository's rebuild faithfully reproduced that number (2.53) when run with the original feature code — confirming the refactor preserved the methodology. However, a subsequent feature audit found that the reproduced result, and therefore the original, contained a look-ahead bias in the idiosyncratic-volatility feature: its rolling window included the prediction month's own return. Correcting the leak (lagging the feature by one month) yields the honest figures reported throughout this README.
 
-All randomness flows from `random_state = 0` in the XGBoost configuration. Given identical CRSP/Compustat extracts from WRDS, results reproduce deterministically. The pipeline has been re-run independently from the original April 2026 submission and the numerical differences are within the expected range for CRSP data refreshes:
-
-| Metric | Rebuild | Original report | Δ |
+| Metric | Original report | Rebuild (as-submitted, with leak) | Corrected (leak-free) |
 |---|---:|---:|---:|
-| Annualized Sharpe | 2.53 | 2.52 | +0.01 |
-| Monthly alpha | 4.36% | 4.43% | −0.07 pp |
-| Alpha t-stat | 13.24 | 13.29 | −0.05 |
-| Market beta | 0.726 | 0.77 | −0.04 |
-| R² (CAPM) | 0.257 | 0.277 | −0.02 |
+| Annual Sharpe | 2.52 | 2.53 | **1.03** |
+| Monthly alpha | 4.43% | 4.36% | **2.19%** |
+| Alpha t-stat | 13.29 | 13.24 | **6.08** |
+| Market beta | 0.77 | 0.73 | **-0.43** |
 
-The methodology, code structure, and qualitative result all reproduce. The ~1% differences in headline numbers are attributable to CRSP historical revisions (CRSP retroactively updates historical share counts and adjustment factors as data quality issues are discovered) and to scikit-learn / XGBoost version drift between the Colab environment of April 2026 and the local environment of May 2026.
+The full detection-and-fix writeup, including the ablation that surfaced it, is in `docs/leakage_audit.md`. The corrected figures are reported here in the interest of honest documentation; a result that initially looks too strong is worth interrogating before it is trusted.
 
----
+## Limitations
 
-## What I'd Do Differently
+In the spirit of honest documentation, this implementation does **not** account for:
 
-Treating this as version 1, the obvious improvements for a v2:
+- **Transaction costs** — the backtest assumes frictionless trading. The short-term reversal signal is high-turnover, so net-of-cost performance would be materially lower than the gross figures above.
+- **Short-selling constraints** — borrow availability and fees are not modeled. The spread relies heavily on the short leg.
+- **Market beta** — the corrected long-short spread carries a negative market beta (-0.43), i.e. it is implicitly net-short the market; it is not beta-neutral.
+- **Capacity / market impact** — the strategy is presented as a research result, not a deployable fund.
+- **Hyperparameter tuning** — XGBoost parameters were chosen by reasonable defaults, not by formal grid search.
+- **Industry / size neutralization** — sector and size concentration not explicitly controlled.
 
-- **Beta-hedge the long-short portfolio.** The current spread has β = 0.73, meaning ~73% of its returns can be explained by market exposure. A v2 would short additional SPY exposure to neutralize beta, producing a "pure alpha" portfolio with potentially higher Sharpe (the alpha is uncorrelated with market noise once beta is removed). This is what a real long-short equity fund would do.
-- **Industry and size neutralization.** The decile sort can concentrate in specific sectors (e.g., decile 9 might be overweight tech in the late 1990s, financials in 2007). A v2 would do the sort within industry buckets, or weight-adjust to match the cross-sectional industry distribution. Same logic applies to market-cap deciles.
-- **Replace XGBoost with LightGBM.** LightGBM's leaf-wise growth and histogram-based splits typically train 2-3× faster at equivalent accuracy on this kind of tabular cross-sectional problem. For a 330-iteration rolling backtest, that compounds.
-- **Add ensemble of feature subsets.** The 10 features have heterogeneous information content. A v2 could train K models on overlapping feature subsets and average predictions, which empirically reduces noise on cross-sectional return models. This is what most production quant shops do.
-- **Transaction cost modeling.** The current backtest is frictionless. A v2 would impose a 50 bps round-trip cost on monthly rebalancing, which on a 4.8% gross return is a meaningful drag (~20% of alpha). The strategy would still be highly significant, but the *deployable* Sharpe would be 1.8-2.0 rather than 2.5.
-- **Hyperparameter sensitivity sweep.** The XGBoost parameters (max_depth=4, n_estimators=40, learning_rate=0.1) were chosen by intuition, not formal search. A grid or Optuna study would justify them quantitatively and likely improve the result modestly.
-
----
-
-## Tech Stack
-
-- **Python 3.12+**
-- **XGBoost 2.1+** — gradient-boosted regression trees
-- **statsmodels** — CAPM regression with t-statistics and R²
-- **pandas / numpy** — cross-sectional operations, `merge_asof`, `rolling`
-- **scipy** — statistical utilities
-- Standard library: `pathlib`, `logging`, `dataclasses`
-
-No deep learning, no GPU, no cloud — by design. The pipeline runs end-to-end in under two minutes on a 2024 laptop.
-
----
+See `docs/methodology.md` Section 7 for full discussion.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
 
-This repository contains source code only. **CRSP and Compustat data are not redistributed** — both are commercial WRDS-licensed databases. The Fama-French Mkt/RF factor file is publicly available from the Kenneth French data library.
-
----
-
-## Context
-
-This project was completed as the capstone for the Quantitative Strategies & Financial Analytics course in the Emory MSBA program (Spring 2026). This repository is the cleaned, refactored, and documented version of the original team submission; the modeling methodology and results are unchanged.
+This repository contains source code only. **Raw CRSP and Compustat data are not redistributed** — they are proprietary, WRDS-licensed data. To reproduce results, you need your own WRDS access.
 
 ## Citation
 
-If you reference this work:
-
 ```
-Goyal, S. (2026). Rolling XGBoost Regression Tree Quantitative Model.
+Goyal, S., & Kim, C. (2026). Rolling XGBoost Regression Tree Quantitative Model.
 GitHub repository: https://github.com/SmritiGoyal/xgboost-quant-stock-return
 ```
