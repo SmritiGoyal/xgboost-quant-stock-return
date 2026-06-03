@@ -161,9 +161,22 @@ def compute_raw_features(merged: pd.DataFrame) -> pd.DataFrame:
     # The .reset_index(level=0, drop=True) is required because
     # groupby+rolling returns a MultiIndex (PERMNO, original_index)
     # which doesn't align with merged's flat index for assignment.
+    #
+    # LEAKAGE FIX: rolling(12) is right-aligned, so at month t the window
+    # is [t-11, t] -- it INCLUDES month t's own return. Since the model
+    # target is month t's (demeaned) return, an unlagged value lets the
+    # feature peek at the very return being predicted. We shift by one
+    # month so the window ends at t-1 (information available at the start
+    # of the prediction month), matching the lag discipline applied to
+    # every other feature (reversal_1m, new_issue, ret_2_12, etc.).
+    #
+    # The unlagged version inflates the long-short Sharpe to ~2.5; the
+    # lagged (correct) version yields the honest ~1.03. See
+    # docs/leakage_audit.md for the full ablation.
     merged["vol_12m"] = (
         g["RET"].rolling(12).std().reset_index(level=0, drop=True)
     )
+    merged["vol_12m"] = merged.groupby("PERMNO")["vol_12m"].shift(1)
 
     logger.info("  Raw features computed: %s", FEATURES)
     return merged
