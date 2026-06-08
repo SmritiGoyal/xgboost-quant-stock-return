@@ -15,7 +15,7 @@ transform, same XGBoost params, same decile construction, same CAPM
 regression -- and changing ONLY the feature list passed to the model:
 
     baseline_no_proposed : all features EXCEPT reversal_1m, vol_12m
-    full_model           : all 10 features (reproduces the published run)
+    full_model           : all 10 features (the full corrected pipeline)
     proposed_only        : reversal_1m, vol_12m only (sanity check)
 
 The gap between baseline_no_proposed and full_model is the number that
@@ -32,12 +32,16 @@ Requires the same config.py that run_pipeline.py uses.
 IMPORTANT before trusting the deltas
 -------------------------------------
 1. Make sure MODEL_PARAMS in config.py sets a fixed seed
-   (e.g. random_state=42). XGBoost with subsampling is stochastic; an
+   (e.g. random_state=0). XGBoost with subsampling is stochastic; an
    unfixed seed will add noise to the delta and contaminate attribution.
-2. Confirm `full_model` below reproduces your published headline
-   (annualized Sharpe ~2.52, monthly alpha ~+4.43%). If it does not,
-   this harness differs from your original run and the baseline is not
-   yet a valid comparison -- stop and reconcile before reporting.
+2. Confirm `full_model` below reproduces your corrected, leak-free
+   headline (annualized Sharpe ~1.03, monthly alpha ~+2.19%, alpha
+   t ~6.08). The original leaked run showed ~2.5 / ~+4.4%, inflated
+   by the vol_12m look-ahead bias (see docs/leakage_audit.md); the
+   harness should now match the corrected ~1.03 figure, not the leaked
+   one. If full_model does not reproduce ~1.03, this harness differs
+   from the corrected pipeline and the baseline is not yet a valid
+   comparison -- stop and reconcile before reporting.
 """
 
 from __future__ import annotations
@@ -89,7 +93,7 @@ BASELINE = [f for f in FEATURES if f not in PROPOSED]   # the other 8
 
 FEATURE_SETS: dict[str, list[str]] = {
     "baseline_no_proposed": BASELINE,        # 8 features
-    "full_model":           list(FEATURES),  # 10 features (published run)
+    "full_model":           list(FEATURES),  # 10 features (full corrected pipeline)
     "proposed_only":        PROPOSED,        # 2 features (sanity check)
 }
 
