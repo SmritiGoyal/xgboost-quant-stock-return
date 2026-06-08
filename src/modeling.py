@@ -10,10 +10,12 @@ For each month t from 1 to (max_month - rolling_window):
     train on months [t, t + rolling_window]   (inclusive both ends)
     predict on month  t + rolling_window + 1
 
-The first prediction is for month (rolling_window + 2), which with a
-60-month window and the panel's first month being January 1995, places
-the first prediction in February 2000. Subsequent monthly predictions
-extend through the panel's final month.
+The first prediction is for month (rolling_window + 2). Empirically the
+panel's first month_num is June 1992, so month 62 is July 1997 -- that is
+where the rolling backtest's first prediction lands. Predictions then run
+monthly through the panel's final month (December 2024), giving 330 test
+months in total. (The portfolio backtest in portfolio_construction.py
+later filters to yr >= 2000, leaving 300 months: January 2000 onward.)
 
 A note on window size
 ---------------------
@@ -22,9 +24,13 @@ The variable is named `rolling_window = 60` and the report describes a
     month_num >= t AND month_num <= t + rolling_window
 is INCLUSIVE on both endpoints, so the actual training window contains
 61 monthly cohorts, not 60. This was the behavior in the original
-notebook and was used to produce the published Sharpe 2.52 / alpha
-4.43% results, so we preserve it verbatim here. Changing the slice to
-get exactly 60 months would change the numbers.
+notebook and was used to produce the originally published Sharpe 2.52 /
+alpha 4.43% results, so we preserve it verbatim here. (Those original
+figures were later found to be inflated by a vol_12m look-ahead leak; the
+corrected, leak-free headline is Sharpe ~1.03 / alpha +2.19% -- see
+docs/leakage_audit.md. The 61-cohort window itself is unrelated to the
+leak and is kept for reproducibility.) Changing the slice to get exactly
+60 months would change the numbers.
 
 Outputs
 -------
