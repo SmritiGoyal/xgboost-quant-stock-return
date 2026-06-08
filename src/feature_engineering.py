@@ -15,13 +15,17 @@ Pipeline stages:
 
 Why 10 features and not 9
 -------------------------
-The final report describes 9 features (7 academic + 2 new). The notebook
-code, however, passes 10 features into XGBoost: the 9 documented features
-PLUS `marketcap` itself, used as an implicit size control.
+The final report describes 9 named factor signals (7 academic + 2 new).
+The notebook code passes 10 features into XGBoost: those 9 factor signals
+PLUS `marketcap`, which serves as a size control. All 10 are documented
+below (marketcap is feature #1).
 
 We preserve the notebook behavior here (10 features) because that is what
-the published Sharpe 2.52 / alpha 4.43% results were produced from. The
-README and methodology docs call this discrepancy out explicitly.
+the originally published Sharpe 2.52 / alpha 4.43% results were produced
+from. (Those figures were later found to be inflated by a vol_12m
+look-ahead leak; the corrected leak-free headline is Sharpe ~1.03 /
+alpha +2.19% -- see docs/leakage_audit.md.) The README and methodology
+docs call this 10-vs-9 discrepancy out explicitly.
 
 Feature list (in the exact order they appear in the model input matrix):
     1. marketcap      — lagged market capitalization ($K)
