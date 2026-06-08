@@ -66,7 +66,7 @@ So a December 2010 fiscal year-end becomes usable in May 2011 — conservative. 
 - ~50% of Compustat rows have all required fields populated.
 - The as-of merge drops CRSP rows with no Compustat match within tolerance.
 
-End result ~1.56M merged rows; feature engineering then drops ~12% more (first-year rows where 12-month-lookback features are NaN). Final modeling panel ~1.31M rows.
+End result ~1.56M merged rows; feature engineering drops ~12% (first-year rows where 12-month-lookback features are NaN), and a `yr >= 1995` coverage filter trims a little more, leaving a final modeling panel of ~1.31M rows.
 
 ---
 
@@ -156,7 +156,7 @@ The classical academic long-short factor portfolio. (Note: in this corrected run
 
 ### 5.3 The yr >= 2000 filter
 
-Although the first prediction is available in early 2000, the portfolio construction filters to `yr >= 2000` for early-year data stability. Feb 2000 – Dec 2024 = 300 months ≈ 25 years.
+Although the rolling backtest's first prediction is available in July 1997, the portfolio construction filters to `yr >= 2000` for early-year data stability. January 2000 – December 2024 = 300 months ≈ 25 years.
 
 ### 5.4 Equal-weight within deciles
 
