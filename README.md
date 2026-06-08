@@ -1,6 +1,6 @@
 # XGBoost Quant Stock Return Model
 
-> **Rolling-window XGBoost cross-sectional return prediction for US equities (1995-2024).** Out-of-sample annualized Sharpe **1.03**, monthly CAPM alpha **+2.19%** (t = 6.08), market beta **-0.43**, over 300 months (Feb 2000 - Dec 2024).
+> **Rolling-window XGBoost cross-sectional return prediction for US equities (1995-2024).** Out-of-sample annualized Sharpe **1.03**, monthly CAPM alpha **+2.19%** (t = 6.08), market beta **-0.43**, over 300 months (Jan 2000 - Dec 2024).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
@@ -26,7 +26,7 @@ The model uses **10 features**: 8 drawn from the academic factor-investing liter
 | Alpha t-statistic | **6.08** |
 | Market beta | **-0.43** |
 | R-squared (market model) | **0.094** |
-| Backtest months | **300** (Feb 2000 - Dec 2024, ~25 years) |
+| Backtest months | **300** (Jan 2000 - Dec 2024, ~25 years) |
 
 ### Decile portfolio structure
 
@@ -213,6 +213,6 @@ This repository contains source code only. **Raw CRSP and Compustat data are not
 ## Citation
 
 ```
-Goyal, S., & Kim, C. (2026). Rolling XGBoost Regression Tree Quantitative Model.
+Goyal, S. (2026). Rolling XGBoost Regression Tree Quantitative Model.
 GitHub repository: https://github.com/SmritiGoyal/xgboost-quant-stock-return
 ```
