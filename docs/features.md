@@ -10,9 +10,9 @@ This document describes the 10 cross-sectional features used as inputs to the XG
 
 The features are listed in the exact order they appear in the model input matrix.
 
-## Feature count: 9 documented + 1 implicit = 10 total
+## Feature count: 10 documented = 9 factor signals + 1 size control
 
-The production code passes **10 features** into XGBoost — the 9 documented features plus `marketcap` itself as an implicit size control. The honest framing is: 9 named factor signals + 1 size control = 10 model inputs.
+The production code passes **10 features** into XGBoost, all documented below: 9 named factor signals plus `marketcap`, which serves as a size control (it is feature #1). The honest framing is: 9 factor signals + 1 size control = 10 model inputs.
 
 The corrected, leak-free headline metrics are an annualized Sharpe of **1.03**, monthly CAPM alpha of **+2.19%**, and alpha t-stat of **6.08**. (An earlier version reported ~2.5 Sharpe; that figure was inflated by a look-ahead bias in `vol_12m`, since corrected — see `docs/leakage_audit.md`.)
 
