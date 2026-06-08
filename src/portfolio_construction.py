@@ -27,11 +27,11 @@ isolates the cross-sectional signal from market beta.
 
 Why filter to yr >= 2000?
 -------------------------
-The rolling-window backtest starts producing predictions ~5 years after
-the data start. With CRSP coverage from 1995 and a 60-month training
-window, the first valid prediction is for February 2000. We filter to
-yr >= 2000 to align the portfolio backtest with the report's "27-year
-out-of-sample" claim covering July 2000 through December 2024.
+The rolling-window backtest produces its first prediction in July 1997
+(330 test months, July 1997 through December 2024). We filter to
+yr >= 2000 for early-year data stability, which leaves 300 portfolio
+months -- January 2000 through December 2024, ~25 years -- matching the
+report's out-of-sample window.
 
 The notebook uses a hardcoded `yr >= 2000` filter; we parametrize it
 via portfolio_start_year so it's auditable.
