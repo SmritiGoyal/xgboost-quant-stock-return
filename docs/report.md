@@ -11,7 +11,7 @@
 
 This project constructs a quantitative model that predicts one-month-ahead cross-sectional stock returns using a rolling XGBoost regression tree framework. Monthly predicted returns are used to form decile portfolios, and the performance of the long-minus-short (diff) portfolio is evaluated in terms of risk-adjusted returns and market exposure.
 
-Data come from CRSP (monthly returns) and Compustat (annual accounting variables), covering common domestic equities listed on NYSE, AMEX, and NASDAQ from 1995 to 2024. The out-of-sample prediction period spans February 2000 through December 2024, yielding 300 monthly observations after the year-2000 cohort filter is applied (~25 years).
+Data come from CRSP (monthly returns) and Compustat (annual accounting variables), covering common domestic equities listed on NYSE, AMEX, and NASDAQ from 1995 to 2024. The rolling backtest produces out-of-sample predictions over 330 months (July 1997 through December 2024); after the year-2000 cohort filter, the portfolio backtest covers January 2000 through December 2024, yielding 300 monthly observations (~25 years).
 
 All features are computed from data available at prediction time. One feature (`vol_12m`) originally contained a look-ahead error — its window included the contemporaneous month — which has since been corrected; the detection and fix are documented in `docs/leakage_audit.md`. After this correction, no feature uses contemporaneous or future information.
 
@@ -63,7 +63,7 @@ Each month, stocks with valid predicted returns are sorted into decile portfolio
 
 The diff portfolio generates an average monthly return of **+1.93%** with an annualized Sharpe ratio of **1.03**, statistically significant (t-stat = **5.15**). A market-model regression of the diff portfolio on the market excess return yields a monthly alpha of **+2.19%** (t-stat = **6.08**), a beta of **−0.43** (t-stat = **−5.55**), and an R² of **0.094**.
 
-> *Original (leaked) figures, for reference: monthly return +4.79%, Sharpe 2.53, t-stat 12.64, alpha +4.36%, alpha t-stat 13.24, beta +0.73, R² 0.257. These were inflated by the `vol_12m` look-ahead leak documented in `docs/leakage_audit.md`.*
+> *Pre-correction (leaked) figures, for reference: monthly return +4.79%, Sharpe 2.53, t-stat 12.64, alpha +4.36%, alpha t-stat 13.24, beta +0.73, R² 0.257. These were inflated by the `vol_12m` look-ahead leak documented in `docs/leakage_audit.md`.*
 
 The corrected beta is **negative** (−0.43), meaning the long-short spread is net-short the market rather than net-long: the short leg (Decile 0) carries a higher market beta (≈1.61) than the long leg (Decile 9, ≈1.18), so shorting the losers contributes negative net market exposure. The spread's alpha is therefore not leveraged market beta.
 
@@ -88,7 +88,7 @@ Second, all Winsorized features are converted to **cross-sectional percentile ra
 - The rolling XGBoost model produces statistically significant out-of-sample predictive power: the diff portfolio achieves a monthly alpha of **+2.19%** (t = 6.08) and an annualized Sharpe of **1.03** over the 2000–2024 backtest.
 - The two new features (`reversal_1m`, `vol_12m`) are complementary but modest: a controlled ablation (`src/run_ablation.py`) shows they add roughly **+0.09 to the annualized Sharpe (~+10%)** over an 8-feature academic baseline, and are weak in isolation (Sharpe 0.38). Most of the model's signal comes from the academic factor set.
 - The spread is **net-short the market** (beta = **−0.43**); it is not beta-neutral.
-- The decile alphas are **broadly monotonic** across the lower-to-middle deciles, but the long leg flattens: Decile 0 alpha = **−1.78%** (t = −10.69 unadjusted / −4.68 CAPM); Decile 9 alpha = **+0.41%** (t = +1.51, not significant). The significant short leg drives the spread.
+- The decile alphas are **broadly monotonic** across the lower-to-middle deciles, but the long leg flattens: Decile 0 alpha = **−1.78%** (raw-return t = −1.19, not significant; CAPM alpha t = −4.68); Decile 9 alpha = **+0.41%** (t = +1.51, not significant). The significant short leg drives the spread.
 - An initially implausible result (Sharpe ~2.5) prompted a feature audit that found and fixed a look-ahead leak; the corrected figures are reported throughout (see `docs/leakage_audit.md`).
 
 ### Limitations and suggested improvements
@@ -107,11 +107,11 @@ Second, all Winsorized features are converted to **cross-sectional percentile ra
 
 | Backtest Period | Avg Rolling R² | % Positive Months | Portfolio Months | Training Window | Horizon |
 |---|---|---|---|---|---|
-| Feb 2000 – Dec 2024 | 0.0028 | 56.4% | 300 | 60-month rolling (61 in implementation) | 1 month ahead |
+| Jan 2000 – Dec 2024 | 0.0028 | 56.4% | 300 | 60-month rolling (61 in implementation) | 1 month ahead |
 
 *Universe: NYSE/AMEX/NASDAQ common equities (SHRCD 10–12), market cap ≥ $10M. Avg R² and % positive are across the 330 rolling test months; the portfolio backtest is restricted to the 300 months from 2000 onward. (The earlier leaked run showed Avg R² ≈ 0.008 — also inflated by the look-ahead bias.)*
 
-### Table 2. Decile Portfolio Performance (Feb 2000 – Dec 2024, corrected)
+### Table 2. Decile Portfolio Performance (Jan 2000 – Dec 2024, corrected)
 
 | Decile | Mean Return | Std Dev | t-stat | Mo. Sharpe | Ann. Sharpe | Alpha (mo.) | Alpha t-stat |
 |---|---:|---:|---:|---:|---:|---:|---:|
